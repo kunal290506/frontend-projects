@@ -1,342 +1,341 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TicketVerse — Book Your Experience</title>
-  <link rel="stylesheet" href="style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StayScape — Find Your Perfect Stay</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<style>
+:root{--red:#ff385c;--dark:#1a1a2e;--light:#f7f7f8;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--light);color:var(--dark);}
+
+.ticker-wrap{width:100%;background:linear-gradient(90deg,#1a1a2e 0%,#0f3460 50%,#1a1a2e 100%);overflow:hidden;height:44px;display:flex;align-items:center;position:relative;z-index:300;box-shadow:0 2px 14px rgba(0,0,0,.35);}
+.ticker-wrap::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--red),#ffd700,var(--red),transparent);background-size:200% 100%;animation:shimmer 3s linear infinite;}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.ticker-label{flex-shrink:0;background:var(--red);color:white;font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;padding:0 16px 0 20px;height:100%;display:flex;align-items:center;gap:6px;position:relative;z-index:3;white-space:nowrap;}
+.ticker-label::after{content:'';position:absolute;right:-13px;top:0;bottom:0;border-left:13px solid var(--red);border-top:22px solid transparent;border-bottom:22px solid transparent;}
+.ticker-mask{position:absolute;right:0;top:0;bottom:0;width:90px;background:linear-gradient(270deg,#1a1a2e,transparent);z-index:2;pointer-events:none;}
+.ticker-track{display:flex;animation:tickerScroll 42s linear infinite;will-change:transform;align-items:center;height:100%;padding-left:32px;}
+.ticker-track:hover{animation-play-state:paused;}
+@keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker-item{display:flex;align-items:center;gap:8px;white-space:nowrap;color:rgba(255,255,255,.88);font-size:13px;font-weight:400;padding:0 30px;height:100%;cursor:default;transition:color .2s;}
+.ticker-item:hover{color:#fff;}
+.ticker-item+.ticker-item::before{content:'✦';color:var(--red);font-size:10px;margin-right:-14px;margin-left:-16px;opacity:.7;}
+.ti-icon{font-size:15px;flex-shrink:0;}
+.ticker-item strong{color:#ffd700;font-weight:600;}
+.ti-pill{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 9px;border-radius:20px;margin-left:2px;border:1px solid;}
+.ti-pill.hot{color:#ff8fa3;border-color:rgba(255,143,163,.45);background:rgba(255,56,92,.15);}
+.ti-pill.gold{color:#ffd700;border-color:rgba(255,215,0,.4);background:rgba(255,215,0,.1);}
+.ti-pill.green{color:#6effa8;border-color:rgba(110,255,168,.4);background:rgba(110,255,168,.1);}
+
+nav{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:0 7%;height:70px;box-shadow:0 1px 0 #eee;}
+.logo{font-family:'Playfair Display',serif;font-size:22px;color:var(--red);text-decoration:none;}
+
+.hero{height:360px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1a2e,#0f3460);position:relative;overflow:hidden;}
+.hero::after{content:'';position:absolute;inset:0;background:url('https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=1400')center/cover;opacity:.15;}
+.hc{position:relative;z-index:2;text-align:center;color:white;}
+.hc h1{font-family:'Playfair Display',serif;font-size:52px;margin-bottom:10px;}
+.hc h1 em{color:#ff8fa3;font-style:normal;}
+.hc p{color:rgba(255,255,255,.6);font-size:16px;}
+.sw{max-width:820px;margin:-26px auto 0;padding:0 20px;position:relative;z-index:10;}
+.sb{background:white;border-radius:16px;box-shadow:0 12px 48px rgba(0,0,0,.18);display:flex;align-items:center;overflow:hidden;}
+.sf{flex:1;padding:17px 16px;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:14px;border-right:1px solid #eee;background:transparent;}
+.sf::placeholder{color:#aaa;}
+.sbtn{background:var(--red);color:white;border:none;padding:13px 24px;margin:7px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;}
+.sbtn:hover{background:#d9224a;}
+.mt{display:flex;gap:10px;justify-content:center;margin:24px 0 0;}
+.mb{padding:9px 22px;border-radius:25px;border:1.5px solid #ddd;background:white;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:.2s;}
+.mb.active{background:var(--dark);color:white;border-color:var(--dark);}
+#map{height:300px;margin:20px 7% 0;display:none;border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.1);}
+.sh{padding:28px 7% 16px;display:flex;justify-content:space-between;align-items:baseline;}
+.sh h2{font-family:'Playfair Display',serif;font-size:26px;}
+.sh span{font-size:14px;color:#888;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:22px;padding:0 7% 60px;}
+.card{background:white;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06);cursor:pointer;transition:transform .25s,box-shadow .25s;}
+.card:hover{transform:translateY(-6px);box-shadow:0 16px 40px rgba(0,0,0,.13);}
+.ciw{position:relative;overflow:hidden;}
+.card img{width:100%;height:196px;object-fit:cover;transition:transform .4s;display:block;}
+.card:hover img{transform:scale(1.06);}
+.badge{position:absolute;top:12px;left:12px;background:white;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;}
+.wb{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.85);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:transform .2s;}
+.wb:hover{transform:scale(1.15);}
+.cb{padding:14px 16px 18px;}
+.ct{display:flex;justify-content:space-between;align-items:flex-start;}
+.cn{font-size:15px;font-weight:600;}
+.cr{font-size:13px;font-weight:500;}
+.cl{font-size:13px;color:#888;margin-top:3px;}
+.ci{font-size:12px;color:#bbb;margin-top:3px;}
+.cf{display:flex;justify-content:space-between;align-items:center;margin-top:12px;}
+.cp strong{font-size:16px;font-weight:700;}
+.cp span{font-size:13px;color:#888;}
+.ctag{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:#fff0f3;color:var(--red);}
+.overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .3s;}
+.overlay.open{opacity:1;pointer-events:all;}
+.modal{background:white;border-radius:22px;width:100%;max-width:900px;box-shadow:0 32px 80px rgba(0,0,0,.3);transform:translateY(36px);transition:transform .35s cubic-bezier(.16,1,.3,1);overflow:hidden;}
+.overlay.open .modal{transform:translateY(0);}
+.mg{display:grid;grid-template-columns:1.5fr 1fr;grid-template-rows:210px 160px;gap:5px;height:375px;}
+.mg-m{grid-row:span 2;overflow:hidden;}
+.mg-s{overflow:hidden;}
+.mg img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s;}
+.mg img:hover{transform:scale(1.04);}
+.cbtn{position:absolute;top:14px;left:14px;background:white;border:none;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:18px;box-shadow:0 2px 10px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;}
+.mbody{padding:26px 32px 32px;}
+.mey{font-size:11px;font-weight:700;color:var(--red);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;}
+.mti{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;margin-bottom:8px;}
+.mme{display:flex;gap:16px;color:#666;font-size:14px;flex-wrap:wrap;margin-bottom:20px;}
+.div{height:1px;background:#eee;margin:20px 0;}
+.mgrid{display:grid;grid-template-columns:1fr 320px;gap:32px;}
+.mdesc{font-size:15px;line-height:1.8;color:#555;}
+.mdesc h3{font-family:'Playfair Display',serif;font-size:18px;color:var(--dark);margin:20px 0 10px;}
+.amen{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.am{display:flex;align-items:center;gap:8px;font-size:13px;color:#444;padding:9px 12px;background:#f8f8f8;border-radius:9px;}
+.hrow{display:flex;align-items:center;gap:14px;margin:20px 0;}
+.hrow img{width:52px;height:52px;border-radius:50%;object-fit:cover;}
+.hn{font-size:15px;font-weight:600;}
+.hm{font-size:13px;color:#888;}
+.sh2{display:inline-block;background:#f0fff4;color:#2e7d32;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;margin-top:3px;}
+.rl{display:flex;flex-direction:column;gap:14px;margin-top:12px;}
+.rc{background:#f8f8f8;border-radius:12px;padding:14px;}
+.rt{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.rt img{width:34px;height:34px;border-radius:50%;object-fit:cover;}
+.rn{font-size:14px;font-weight:600;}
+.rd{font-size:12px;color:#aaa;}
+.rtxt{font-size:13px;color:#555;line-height:1.6;}
+.bk{background:white;border:1.5px solid #e8e8e8;border-radius:18px;padding:22px;box-shadow:0 8px 30px rgba(0,0,0,.08);}
+.bp{font-size:26px;font-weight:700;}
+.bp span{font-size:15px;font-weight:400;color:#888;}
+.bsub{font-size:13px;color:#666;margin-top:4px;}
+.bdates{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid #e0e0e0;border-radius:12px;overflow:hidden;margin-top:16px;}
+.bdf{padding:11px 13px;}
+.bdf:first-child{border-right:1px solid #e0e0e0;}
+.bdf label{display:block;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#333;margin-bottom:3px;}
+.bdf input{border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:14px;color:#555;width:100%;background:transparent;}
+.bg{border:1.5px solid #e0e0e0;border-radius:12px;padding:11px 13px;margin-top:10px;}
+.bg label{display:block;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#333;margin-bottom:3px;}
+.bg input{border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:14px;color:#555;width:100%;background:transparent;}
+.bbtn{width:100%;background:linear-gradient(135deg,#ff385c,#e8174a);color:white;border:none;padding:15px;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-top:14px;box-shadow:0 4px 18px rgba(255,56,92,.35);}
+.bbtn:hover{background:#d9224a;}
+.bnote{text-align:center;font-size:12px;color:#aaa;margin-top:8px;}
+.br{display:flex;justify-content:space-between;font-size:14px;color:#555;padding:8px 0;border-bottom:1px solid #f0f0f0;}
+.br.total{border:none;font-weight:700;color:var(--dark);font-size:15px;}
+footer{background:var(--dark);color:rgba(255,255,255,.55);padding:32px 7% 24px;margin-top:40px;display:flex;justify-content:space-between;font-size:13px;flex-wrap:wrap;gap:10px;}
+.empty{text-align:center;padding:70px 20px;grid-column:1/-1;}
+.empty .e{font-size:54px;margin-bottom:14px;}
+.empty h3{font-family:'Playfair Display',serif;font-size:22px;margin-bottom:8px;}
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--dark);color:white;padding:11px 22px;border-radius:30px;font-size:14px;z-index:999;opacity:0;transition:.3s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+@media(max-width:680px){.mgrid{grid-template-columns:1fr;}.mg{grid-template-columns:1fr;height:auto;grid-template-rows:220px 120px 120px;}.mg-m{grid-row:span 1;}.mbody{padding:18px;}}
+</style>
 </head>
 <body>
 
- 
-  <div id="mainSite">
+<div class="ticker-wrap">
+  <div class="ticker-label">🏷&nbsp; Offers</div>
+  <div class="ticker-track" id="tickerTrack"></div>
+  <div class="ticker-mask"></div>
+</div>
 
-    
-    <nav class="navbar" id="navbar">
-      <div class="nav-inner">
-        <a href="#home" class="logo">Ticket<span>Verse</span></a>
-        <ul class="nav-links" id="navLinks">
-          <li><a href="#home">Home</a></li>
-          <li><a href="#events">Events</a></li>
-          <li><a href="#booking">Booking</a></li>
-          <li><a href="#contact">Contact</a></li>
-        </ul>
-        <button class="hamburger" id="hamburger" aria-label="Toggle menu">
-          <span></span><span></span><span></span>
-        </button>
-      </div>
-    </nav>
+<nav>
+  <a class="logo" href="#">✦ stayscape</a>
+</nav>
 
-   
-    <section class="hero" id="home">
-      <div class="hero-bg-circles">
-        <div class="circle c1"></div>
-        <div class="circle c2"></div>
-        <div class="circle c3"></div>
-      </div>
-      <div class="hero-content">
-        <p class="eyebrow">Live Events · Sports · Cinema</p>
-        <h1>Your Next<br /><span class="highlight">Unforgettable</span><br />Experience Awaits</h1>
-        <p class="hero-sub">Browse hundreds of events. Pick your seat. Book in seconds.</p>
-        <div class="hero-btns">
-          <a href="#events" class="btn btn-primary">Explore Events</a>
-          <a href="#booking" class="btn btn-outline">Book a Ticket</a>
-        </div>
-      </div>
-      <div class="hero-stats">
-        <div class="stat"><span class="stat-num">500+</span><span class="stat-label">Events</span></div>
-        <div class="stat"><span class="stat-num">1M+</span><span class="stat-label">Tickets Sold</span></div>
-        <div class="stat"><span class="stat-num">4.9★</span><span class="stat-label">Rated</span></div>
-      </div>
-    </section>
-
-    
-    <section class="events-section" id="events">
-      <div class="container">
-        <div class="section-head">
-          <p class="section-tag">What's On</p>
-          <h2>Upcoming Events</h2>
-          <p class="section-sub">From blockbusters to stadium finals — find what excites you.</p>
-        </div>
-        <div class="events-grid" id="eventsGrid">
-
-          <div class="event-card">
-            <div class="card-banner movie-banner"><span class="category-badge">🎬 Movie</span></div>
-            <div class="card-body">
-              <h3>Interstellar: IMAX Re-Release</h3>
-              <div class="card-meta">
-                <span>📅 July 12, 2025</span>
-                <span>📍 PVR IMAX, Mumbai</span>
-              </div>
-              <p class="card-desc">Experience Nolan's masterpiece in full IMAX glory. Limited seats available.</p>
-              <div class="card-footer">
-                <span class="price">₹850 <small>/ seat</small></span>
-                <button class="btn btn-book" onclick="openDetails(this)">Book Ticket</button>
-              </div>
-            </div>
-            <div class="event-details">
-              <hr />
-              <div class="detail-grid">
-                <div><strong>Venue</strong><p>PVR IMAX, Lower Parel, Mumbai</p></div>
-                <div><strong>Time</strong><p>7:30 PM (180 min)</p></div>
-                <div><strong>Price</strong><p>₹850 per seat</p></div>
-                <div><strong>Availability</strong><p>42 seats left</p></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="event-card">
-            <div class="card-banner sports-banner"><span class="category-badge">🏏 Sports</span></div>
-            <div class="card-body">
-              <h3>India vs Australia — T20 Final</h3>
-              <div class="card-meta">
-                <span>📅 July 19, 2025</span>
-                <span>📍 Wankhede Stadium</span>
-              </div>
-              <p class="card-desc">The biggest T20 clash of the season. Be there live as history is made.</p>
-              <div class="card-footer">
-                <span class="price">₹1,200 <small>/ seat</small></span>
-                <button class="btn btn-book" onclick="openDetails(this)">Book Ticket</button>
-              </div>
-            </div>
-            <div class="event-details">
-              <hr />
-              <div class="detail-grid">
-                <div><strong>Venue</strong><p>Wankhede Stadium, Mumbai</p></div>
-                <div><strong>Time</strong><p>2:00 PM onwards</p></div>
-                <div><strong>Price</strong><p>₹1,200 per seat</p></div>
-                <div><strong>Availability</strong><p>120 seats left</p></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="event-card">
-            <div class="card-banner concert-banner"><span class="category-badge">🎵 Concert</span></div>
-            <div class="card-body">
-              <h3>Arijit Singh Live in Concert</h3>
-              <div class="card-meta">
-                <span>📅 Aug 3, 2025</span>
-                <span>📍 MMRDA Grounds, BKC</span>
-              </div>
-              <p class="card-desc">An evening of soulful melodies and live magic with India's favourite voice.</p>
-              <div class="card-footer">
-                <span class="price">₹2,500 <small>/ seat</small></span>
-                <button class="btn btn-book" onclick="openDetails(this)">Book Ticket</button>
-              </div>
-            </div>
-            <div class="event-details">
-              <hr />
-              <div class="detail-grid">
-                <div><strong>Venue</strong><p>MMRDA Grounds, BKC Mumbai</p></div>
-                <div><strong>Time</strong><p>6:00 PM – 10:00 PM</p></div>
-                <div><strong>Price</strong><p>₹2,500 per seat</p></div>
-                <div><strong>Availability</strong><p>280 seats left</p></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="event-card">
-            <div class="card-banner movie2-banner"><span class="category-badge">🎬 Movie</span></div>
-            <div class="card-body">
-              <h3>Dune: Part Three — World Premiere</h3>
-              <div class="card-meta">
-                <span>📅 Aug 15, 2025</span>
-                <span>📍 Cinepolis 4DX, Andheri</span>
-              </div>
-              <p class="card-desc">The epic saga concludes. Watch the world premiere in 4DX with full immersion.</p>
-              <div class="card-footer">
-                <span class="price">₹950 <small>/ seat</small></span>
-                <button class="btn btn-book" onclick="openDetails(this)">Book Ticket</button>
-              </div>
-            </div>
-            <div class="event-details">
-              <hr />
-              <div class="detail-grid">
-                <div><strong>Venue</strong><p>Cinepolis 4DX, Andheri West</p></div>
-                <div><strong>Time</strong><p>9:00 PM (155 min)</p></div>
-                <div><strong>Price</strong><p>₹950 per seat</p></div>
-                <div><strong>Availability</strong><p>18 seats left</p></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="event-card">
-            <div class="card-banner sports2-banner"><span class="category-badge">⚽ Sports</span></div>
-            <div class="card-body">
-              <h3>Mumbai City FC vs ATK Mohun Bagan</h3>
-              <div class="card-meta">
-                <span>📅 Aug 22, 2025</span>
-                <span>📍 DY Patil Stadium</span>
-              </div>
-              <p class="card-desc">ISL playoffs clash in one of Mumbai's most electric football atmospheres.</p>
-              <div class="card-footer">
-                <span class="price">₹600 <small>/ seat</small></span>
-                <button class="btn btn-book" onclick="openDetails(this)">Book Ticket</button>
-              </div>
-            </div>
-            <div class="event-details">
-              <hr />
-              <div class="detail-grid">
-                <div><strong>Venue</strong><p>DY Patil Stadium, Navi Mumbai</p></div>
-                <div><strong>Time</strong><p>7:00 PM kickoff</p></div>
-                <div><strong>Price</strong><p>₹600 per seat</p></div>
-                <div><strong>Availability</strong><p>390 seats left</p></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="event-card">
-            <div class="card-banner concert2-banner"><span class="category-badge">🎸 Concert</span></div>
-            <div class="card-body">
-              <h3>Nucleya Bass Drop Festival</h3>
-              <div class="card-meta">
-                <span>📅 Sep 6, 2025</span>
-                <span>📍 Mahalaxmi Racecourse</span>
-              </div>
-              <p class="card-desc">India's biggest electronic music festival returns with a thunderous lineup.</p>
-              <div class="card-footer">
-                <span class="price">₹1,800 <small>/ seat</small></span>
-                <button class="btn btn-book" onclick="openDetails(this)">Book Ticket</button>
-              </div>
-            </div>
-            <div class="event-details">
-              <hr />
-              <div class="detail-grid">
-                <div><strong>Venue</strong><p>Mahalaxmi Racecourse, Mumbai</p></div>
-                <div><strong>Time</strong><p>5:00 PM – 12:00 AM</p></div>
-                <div><strong>Price</strong><p>₹1,800 per seat</p></div>
-                <div><strong>Availability</strong><p>550 seats left</p></div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </section>
-
-    
-    <section class="booking-section" id="booking">
-      <div class="container">
-        <div class="section-head light">
-          <p class="section-tag">Reserve Your Spot</p>
-          <h2>Book a Ticket</h2>
-          <p class="section-sub">Fill in your details below and confirm your booking in seconds.</p>
-        </div>
-        <div class="booking-wrapper">
-          <form class="booking-form" id="bookingForm" novalidate>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="fullName">Full Name</label>
-                <input type="text" id="fullName" placeholder="e.g. Priya Sharma" />
-                <span class="error-msg" id="nameError"></span>
-              </div>
-              <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" placeholder="you@example.com" />
-                <span class="error-msg" id="emailError"></span>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="eventSelect">Select Event</label>
-                <select id="eventSelect">
-                  <option value="">— Choose an event —</option>
-                  <option value="interstellar">Interstellar IMAX — ₹850</option>
-                  <option value="india-aus">India vs Australia T20 — ₹1,200</option>
-                  <option value="arijit">Arijit Singh Live — ₹2,500</option>
-                  <option value="dune">Dune Part Three 4DX — ₹950</option>
-                  <option value="isl">Mumbai City FC vs ATK — ₹600</option>
-                  <option value="nucleya">Nucleya Bass Drop — ₹1,800</option>
-                </select>
-                <span class="error-msg" id="eventError"></span>
-              </div>
-              <div class="form-group">
-                <label for="ticketCount">Number of Tickets</label>
-                <input type="number" id="ticketCount" placeholder="1" min="1" max="10" />
-                <span class="error-msg" id="ticketError"></span>
-              </div>
-            </div>
-            <button type="submit" class="btn btn-primary btn-full" id="submitBtn">Confirm Booking</button>
-          </form>
-        </div>
-      </div>
-    </section>
-
-    <!-- FOOTER -->
-    <footer class="footer" id="contact">
-      <div class="container footer-inner">
-        <div class="footer-brand">
-          <p class="logo">Ticket<span>Verse</span></p>
-          <p>Making every event unforgettable, one ticket at a time.</p>
-        </div>
-        <div class="footer-links">
-          <p class="footer-heading">Quick Links</p>
-          <a href="#home">Home</a>
-          <a href="#events">Events</a>
-          <a href="#booking">Booking</a>
-        </div>
-        <div class="footer-contact">
-          <p class="footer-heading">Contact Us</p>
-          <p>📧 support@ticketverse.in</p>
-          <p>📞 +91 98765 43210</p>
-          <p>📍 Mumbai, Maharashtra</p>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <p>© 2025 TicketVerse. Built for Sysslan IT Solutions Project.</p>
-      </div>
-    </footer>
-
+<section class="hero">
+  <div class="hc">
+    <h1>Find your <em>perfect</em><br>home away from home</h1>
+    <p>15 handpicked stays across India's most beautiful destinations</p>
   </div>
+</section>
 
+<div class="sw">
+  <div class="sb">
+    <input class="sf" id="location" placeholder="🔍  Where to?">
+    <select class="sf" id="priceRange">
+      <option value="">Any Price</option>
+      <option value="0-50">Under $50</option>
+      <option value="50-100">$50–$100</option>
+      <option value="100-150">$100–$150</option>
+      <option value="150-200">$150–$200</option>
+      <option value="200-1000">$200+</option>
+    </select>
+    <input class="sf" id="guests" type="number" placeholder="👥 Guests" min="1">
+    <button class="sbtn" onclick="doSearch()">Search</button>
+  </div>
+</div>
 
-  
-  <div id="confirmPage">
-    <div class="confirm-blobs">
-      <div class="cblob cb1"></div>
-      <div class="cblob cb2"></div>
-      <div class="cblob cb3"></div>
+<div class="mt">
+  <button class="mb active" onclick="setMode('text',this)">🗒 List View</button>
+  <button class="mb" onclick="setMode('map',this)">🗺 Map View</button>
+</div>
+<div id="map"></div>
+
+<div class="sh"><h2>Places to stay</h2><span id="count">15 stays</span></div>
+<div class="grid" id="grid"></div>
+
+<div class="overlay" id="overlay" onclick="bgClose(event)">
+  <div class="modal" id="modal">
+    <div style="position:relative">
+      <div class="mg" id="mg"></div>
+      <button class="cbtn" onclick="closeModal()">✕</button>
     </div>
-
-    <div class="confirm-card">
-      <div class="tick-wrap">
-        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-      </div>
-
-      <p class="confirm-label">Booking Confirmed</p>
-      <h1 id="confirmHeading">Thanks for booking! 🎉</h1>
-      <p class="confirm-sub">A confirmation has been sent to <strong id="confirmEmail">your email</strong>.</p>
-
-      <div class="booking-summary">
-        <div class="summary-row">
-          <span class="s-label">Event</span>
-          <span class="s-value" id="sumEvent">—</span>
-        </div>
-        <div class="summary-row">
-          <span class="s-label">Tickets</span>
-          <span class="s-value" id="sumTickets">—</span>
-        </div>
-        <div class="summary-row">
-          <span class="s-label">Status</span>
-          <span class="s-value confirmed">✓ Confirmed</span>
-        </div>
-      </div>
-
-      <p class="ref-label">Booking Reference</p>
-      <div class="booking-ref" id="bookingRef">TV-000000</div>
-
-      <div class="confirm-actions">
-        <button class="btn btn-primary btn-full" onclick="goHome()">← Return to Homepage</button>
-        <button class="btn btn-outline btn-full" onclick="goEvents()">Browse More Events</button>
+    <div class="mbody">
+      <div class="mey" id="mEy"></div>
+      <div class="mti" id="mTi"></div>
+      <div class="mme" id="mMe"></div>
+      <div class="div"></div>
+      <div class="mgrid">
+        <div id="mL"></div>
+        <div id="mR"></div>
       </div>
     </div>
-
-    <p class="confirm-logo">Ticket<span>Verse</span></p>
   </div>
+</div>
 
-  <script src="script.js"></script>
+<footer>
+  <span>© 2026 StayScape · Privacy · Terms</span>
+  <span>Made with ❤️ for the best stays in India</span>
+</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+const OFFERS=[
+  {icon:'🎉',html:'First booking? Get <strong>15% off</strong> with code <strong>WELCOME15</strong>',pill:'NEW',cls:'green'},
+  {icon:'🏖',html:'Book any <strong>Goa</strong> stay — complimentary <strong>airport transfer</strong> included',pill:'HOT',cls:'hot'},
+  {icon:'🌙',html:'<strong>Stay 3 nights, pay for 2</strong> at select properties this April',pill:'LIMITED',cls:'gold'},
+  {icon:'🐪',html:'Jaisalmer Desert Camp — <strong>camel safari + all meals</strong> now bundled free',pill:'HOT',cls:'hot'},
+  {icon:'🛶',html:'Kerala Backwaters — every booking includes a <strong>private houseboat sunset cruise</strong>',pill:'NEW',cls:'green'},
+  {icon:'💑',html:'Celebrating an occasion? Add a <strong>free romantic setup</strong> at checkout',pill:'SPECIAL',cls:'gold'},
+  {icon:'🧳',html:'Book <strong>7+ nights</strong> anywhere and unlock <strong>early check-in & late checkout</strong> free',pill:'OFFER',cls:'hot'},
+  {icon:'☀',html:'Summer sale — <strong>Udaipur Lake House</strong> saves up to <strong>$40/night</strong> through May',pill:'SALE',cls:'gold'},
+  {icon:'🤝',html:'Refer a friend — you both receive <strong>$20 credit</strong> on your next stay',pill:'NEW',cls:'green'},
+  {icon:'🏙',html:'City stays in <strong>Mumbai, Delhi & Bangalore</strong> now include complimentary breakfast',pill:'OFFER',cls:'hot'},
+  {icon:'🌿',html:'Farm & nature escapes from just <strong>$60/night</strong> — taste the real India',pill:'PICK',cls:'gold'},
+  {icon:'❄',html:'<strong>Kashmir Snow Cabins</strong> — traditional Wazwan dinner arranged on arrival',pill:'HOT',cls:'hot'},
+];
+(function buildTicker(){
+  const track=document.getElementById('tickerTrack');
+  const doubled=[...OFFERS,...OFFERS];
+  track.innerHTML=doubled.map(o=>`<div class="ticker-item"><span class="ti-icon">${o.icon}</span><span>${o.html}</span><span class="ti-pill ${o.cls}">${o.pill}</span></div>`).join('');
+})();
+
+const H=[
+  {id:1,name:"Luxury Apartment",loc:"Mumbai",state:"Maharashtra",lat:19.076,lng:72.877,price:120,guests:2,rating:4.9,reviews:312,badge:"Guest Favourite",cat:"luxury",img:"https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=500&auto=format&fit=crop",gallery:["https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=800","https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=500","https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500"],host:{name:"Priya Sharma",img:"https://i.pravatar.cc/80?img=5",since:"2018",sup:true},desc:"Wake up to sweeping Arabian Sea views in this sleek Bandra West apartment. Open-plan living, warm walnut accents and curated local art make every moment here special. The building offers concierge service and a rooftop pool.",amenities:["🛜 Fast WiFi","❄️ AC","🍳 Kitchen","📺 Smart TV","🅿️ Parking","🧺 Washer","🛁 Bathtub","☕ Coffee maker"],highlights:["Sea-facing balcony with sunset views","5 min walk to Bandstand Promenade","Premium linen & toiletries included","24/7 building security"],revs:[{name:"Aditya K.",img:"https://i.pravatar.cc/40?img=11",date:"March 2026",stars:5,text:"Stunning views, Priya was super responsive. Will definitely come back!"},{name:"Sophie T.",img:"https://i.pravatar.cc/40?img=20",date:"Feb 2026",stars:5,text:"Immaculate space, perfectly located. Best stay in Mumbai by far."}]},
+  {id:2,name:"Beach Villa",loc:"Goa",state:"Goa",lat:15.299,lng:74.124,price:200,guests:4,rating:4.8,reviews:278,badge:"Top Rated",cat:"beach",img:"https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=500&auto=format&fit=crop",gallery:["https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=800","https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=500","https://images.unsplash.com/photo-1540541338287-41700207dee6?w=500"],host:{name:"Carlos Fernandes",img:"https://i.pravatar.cc/80?img=3",since:"2016",sup:true},desc:"A dream villa just 90 steps from the shimmering sands of Vagator Beach. Classic Goan-Portuguese style with terracotta floors, whitewashed arches and a private pool fringed with swaying palms.",amenities:["🏊 Private pool","🛜 WiFi","❄️ AC","🍳 Kitchen","🏄 Beach access","🎵 Sound system","🔥 BBQ grill","🚿 Outdoor shower"],highlights:["90 steps to Vagator Beach","Private pool with loungers","Daily housekeeping","BBQ available"],revs:[{name:"Meera R.",img:"https://i.pravatar.cc/40?img=25",date:"March 2026",stars:5,text:"Absolute paradise! Carlos arranged a local fish BBQ — unforgettable!"},{name:"Jake M.",img:"https://i.pravatar.cc/40?img=33",date:"Jan 2026",stars:5,text:"Perfect Goa experience. Will return next winter without question."}]},
+  {id:3,name:"Hill Cottage",loc:"Manali",state:"Himachal Pradesh",lat:32.239,lng:77.188,price:90,guests:3,rating:4.7,reviews:189,badge:"Cozy Pick",cat:"mountain",img:"https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&auto=format&fit=crop",gallery:["https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800","https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=500","https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=500"],host:{name:"Ravi Thakur",img:"https://i.pravatar.cc/80?img=7",since:"2019",sup:false},desc:"A charming wooden cottage perched on a pine-covered hillside above Old Manali. Wake up to snow-dusted Himalayan peaks, walk to hidden waterfalls and return to a crackling fireplace.",amenities:["🔥 Fireplace","🛜 WiFi","🍳 Kitchen","🎿 Ski nearby","🌄 Mountain view","🐕 Pet friendly","🚗 Parking","🧊 No AC needed"],highlights:["Panoramic Himalayan views","Walking distance to Old Manali","Fireplace & cozy reading nook","Complimentary breakfast basket"],revs:[{name:"Ananya B.",img:"https://i.pravatar.cc/40?img=16",date:"Feb 2026",stars:5,text:"Most peaceful place ever. Fresh snow on the mountains every morning. Ravi lit the fireplace before we arrived!"},{name:"Rohan G.",img:"https://i.pravatar.cc/40?img=44",date:"Dec 2025",stars:4,text:"Wonderful cottage, very authentic feel. The views are worth every rupee."}]},
+  {id:4,name:"City Studio",loc:"Delhi",state:"Delhi NCR",lat:28.704,lng:77.102,price:70,guests:2,rating:4.6,reviews:245,badge:"Great Value",cat:"city",img:"https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=500&auto=format&fit=crop",gallery:["https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800","https://images.unsplash.com/photo-1554995207-c18c203602cb?w=500","https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500"],host:{name:"Neha Kapoor",img:"https://i.pravatar.cc/80?img=9",since:"2020",sup:false},desc:"A thoughtfully designed studio in South Delhi, steps from Khan Market metro and the city's best restaurants. Super-fast WiFi and a fully stocked kitchenette for digital nomads.",amenities:["🛜 WiFi","❄️ AC","🍳 Kitchenette","📺 Netflix","🚇 Metro nearby","🔒 Smart lock","🧴 Toiletries","🧺 Washer"],highlights:["2 min walk to Khan Market Metro","Breakfast included","Late checkout on request","Complimentary SIM card"],revs:[{name:"Zara L.",img:"https://i.pravatar.cc/40?img=21",date:"March 2026",stars:5,text:"Exactly as advertised — clean, well-equipped and great location. Neha responded in minutes."},{name:"Vikram S.",img:"https://i.pravatar.cc/40?img=52",date:"Feb 2026",stars:4,text:"Solid studio for solo or couple travel. Great metro access."}]},
+  {id:5,name:"Lake House",loc:"Udaipur",state:"Rajasthan",lat:24.585,lng:73.712,price:150,guests:4,rating:4.9,reviews:362,badge:"Guest Favourite",cat:"luxury",img:"https://images.unsplash.com/photo-1505693314120-0d443867891c?w=500&auto=format&fit=crop",gallery:["https://images.unsplash.com/photo-1505693314120-0d443867891c?w=800","https://images.unsplash.com/photo-1584738766473-61c083514bf4?w=500","https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500"],host:{name:"Deepika Rathore",img:"https://i.pravatar.cc/80?img=32",since:"2017",sup:true},desc:"Exquisite haveli on the shores of Lake Pichola. Hand-carved Rajasthani architecture, mirror-inlaid walls and an open terrace with City Palace directly in your sightline.",amenities:["🛶 Private boat","🛜 WiFi","❄️ AC","🍳 Kitchen","🌅 Lake view","🛁 Heritage bath","🧘 Yoga deck","🌙 Rooftop terrace"],highlights:["Directly on Lake Pichola shoreline","Private sunset boat ride included","Heritage Rajasthani architecture","Butler service available"],revs:[{name:"Isabelle M.",img:"https://i.pravatar.cc/40?img=29",date:"March 2026",stars:5,text:"Top 3 in 40+ countries. The lake views at sunrise made me cry. Deepika is incredible."},{name:"Arjun P.",img:"https://i.pravatar.cc/40?img=48",date:"Jan 2026",stars:5,text:"A total fairytale. The boat ride at sunset sealed it. Book immediately."}]},
+  {id:6,name:"Farm Stay",loc:"Amritsar",state:"Punjab",lat:31.147,lng:75.341,price:60,guests:5,rating:4.5,reviews:143,badge:"Unique Stay",cat:"nature",img:"https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=500&auto=format&fit=crop",gallery:["https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800","https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=500","https://images.unsplash.com/photo-1523741543316-beb7fc7023d8?w=500"],host:{name:"Gurpreet Singh",img:"https://i.pravatar.cc/80?img=18",since:"2021",sup:false},desc:"An authentic Punjabi farm across 6 acres of golden wheat fields on the outskirts of Amritsar. Home-cooked saag, makki di roti, sunrise tractor rides and rooftop bonfires under blazing stars.",amenities:["🌾 Farm tour","🛜 WiFi","🍳 Kitchen","🐄 Animals","🔥 Bonfire","🚴 Cycling","🍺 Local brew","🌅 Open fields"],highlights:["6-acre working wheat farm","Home-cooked meals included","15 min to Golden Temple","Sunrise tractor tours"],revs:[{name:"Simran D.",img:"https://i.pravatar.cc/40?img=36",date:"Feb 2026",stars:5,text:"Most heartwarming stay ever. Gurpreet's mother cooked a feast every morning. Real India!"},{name:"Tom H.",img:"https://i.pravatar.cc/40?img=60",date:"Nov 2025",stars:4,text:"Perfect rural escape. Golden Temple is close. Bonfire at night was magical."}]},
+  {id:7,name:"Modern Flat",loc:"Bangalore",state:"Karnataka",lat:12.971,lng:77.594,price:110,guests:2,rating:4.7,reviews:201,badge:"Work-friendly",cat:"city",img:"https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?w=500&auto=format&fit=crop",gallery:["https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?w=800","https://images.unsplash.com/photo-1497366216548-37526070297c?w=500","https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=500"],host:{name:"Anand Krishnan",img:"https://i.pravatar.cc/80?img=14",since:"2019",sup:true},desc:"Bangalore tech meets Scandi minimalism in Indiranagar. Concrete ceilings, warm wood floors, 1Gbps fibre and an ergonomic work desk — perfect for digital nomads.",amenities:["🛜 1Gbps WiFi","❄️ AC","🖥 Work desk","📺 4K TV","☕ Pour-over kit","🧺 Washer","🚇 Metro nearby","🔒 Smart lock"],highlights:["1 Gbps dedicated fibre WiFi","Ergonomic desk & monitor","3 min to 100 Feet Road restaurants","Netflix & Prime included"],revs:[{name:"Nadia K.",img:"https://i.pravatar.cc/40?img=23",date:"March 2026",stars:5,text:"Stayed a month for work. WiFi never dropped and the flat is gorgeous!"},{name:"Dev R.",img:"https://i.pravatar.cc/40?img=50",date:"Jan 2026",stars:5,text:"Best WFH setup on any rental platform in India."}]},
+  {id:8,name:"Desert Camp",loc:"Jaisalmer",state:"Rajasthan",lat:26.915,lng:70.908,price:80,guests:3,rating:4.8,reviews:267,badge:"One of a Kind",cat:"desert",img:"https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=500&auto=format&fit=crop",gallery:["https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800","https://images.unsplash.com/photo-1542401886-65d6c61db217?w=500","https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=500"],host:{name:"Salim Khan",img:"https://i.pravatar.cc/80?img=6",since:"2018",sup:true},desc:"Sleep under a billion stars in luxury Swiss-cotton tents deep in the Thar Desert. Dunes glow gold at sunset, folk musicians perform around a roaring bonfire, Milky Way above at midnight.",amenities:["🐪 Camel rides","🌠 Stargazing","🔥 Bonfire","🎵 Folk music","🍽 Desert feast","🏕 Luxury tents","🌄 Dune views","🎒 All meals included"],highlights:["45km from Jaisalmer Fort","Camel safari at dawn & dusk","Live folk music nightly","All meals included"],revs:[{name:"Léa D.",img:"https://i.pravatar.cc/40?img=38",date:"Jan 2026",stars:5,text:"Once-in-a-lifetime. Never seen so many stars. Camel ride at dawn had me in tears of joy."},{name:"Kiran M.",img:"https://i.pravatar.cc/40?img=55",date:"Dec 2025",stars:5,text:"Salim's hospitality is second to none. Bonfire dinner was spectacular."}]},
+  {id:9,name:"Luxury Penthouse",loc:"Mumbai",state:"Maharashtra",lat:19.076,lng:72.877,price:300,guests:6,rating:5.0,reviews:89,badge:"Ultra Luxury",cat:"luxury",img:"https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&auto=format&fit=crop",gallery:["https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800","https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=500","https://images.unsplash.com/photo-1600607687939-ce8a6d349a58?w=500"],host:{name:"Rhea Malhotra",img:"https://i.pravatar.cc/80?img=45",since:"2015",sup:true},desc:"Three-floor penthouse atop a Worli skyscraper with 270° panoramic views of Mumbai, the sea and the Sea Link. Marble heated floors, rooftop plunge pool and a 12-seat chef's kitchen.",amenities:["🛁 Jacuzzi","🍸 Mini bar","🏊 Rooftop pool","🛜 WiFi","❄️ AC","🍳 Chef's kitchen","🎭 Home theatre","🚗 Luxury car"],highlights:["270° panoramic city views","Rooftop plunge pool & Jacuzzi","Private chef available on request","Concierge & luxury car included"],revs:[{name:"Amara J.",img:"https://i.pravatar.cc/40?img=2",date:"Feb 2026",stars:5,text:"Anniversary dinner with Sea Link views. Chef cooked a 7-course menu. Utterly magical."},{name:"Rajat K.",img:"https://i.pravatar.cc/40?img=58",date:"Jan 2026",stars:5,text:"Worth every rupee. Rooftop pool at night is a core memory."}]},
+  {id:10,name:"Backwater Villa",loc:"Alleppey",state:"Kerala",lat:10.850,lng:76.271,price:180,guests:4,rating:4.9,reviews:341,badge:"Top Rated",cat:"nature",img:"https://images.unsplash.com/photo-1580674684081-7617fbf3d745?w=500&auto=format&fit=crop",gallery:["https://images.unsplash.com/photo-1580674684081-7617fbf3d745?w=800","https://images.unsplash.com/photo-1574958269340-fa927503f3dd?w=500","https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=500"],host:{name:"Thomas Varghese",img:"https://i.pravatar.cc/80?img=41",since:"2016",sup:true},desc:"Stunning villa on Kerala's legendary backwaters. Wooden Tharavad architecture, lotus ponds and a private houseboat for sunset cruises through the canals.",amenities:["🛶 Houseboat","🌿 Backwater view","🛜 WiFi","❄️ AC","🍳 Kerala cuisine","🧘 Yoga","🐟 Fishing","🌴 Garden"],highlights:["Private houseboat cruises","Kerala breakfast daily","Canoe & fishing available","Ayurvedic massage on request"],revs:[{name:"Prachi V.",img:"https://i.pravatar.cc/40?img=27",date:"March 2026",stars:5,text:"Kerala in its most beautiful form. The houseboat at sunset — I could live here forever."},{name:"Marco B.",img:"https://i.pravatar.cc/40?img=62",date:"Dec 2025",stars:5,text:"Thomas is the most thoughtful host. Every detail was perfect. Unmissable."}]},
+  {id:11,name:"Snow Cabin",loc:"Pahalgam",state:"Kashmir",lat:34.083,lng:74.797,price:130,guests:3,rating:4.8,reviews:178,badge:"Winter Escape",cat:"mountain",img:"https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=500&auto=format&fit=crop",gallery:["https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800","https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=500","https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=500"],host:{name:"Tariq Ahmad",img:"https://i.pravatar.cc/80?img=22",since:"2020",sup:true},desc:"Enchanting log cabin in Pahalgam's pine valley where the Lidder River rushes past. Winters transform this into a magical white world — snowfall on the roof, icicles at the eaves.",amenities:["❄️ Snow views","🔥 Kangri heater","🛜 WiFi","🍳 Kitchen","🎿 Skiing nearby","🌲 Pine forest","🐎 Horse riding","🧦 Warm bedding"],highlights:["Directly on Lidder River bank","Gulmarg skiing 40km away","Horse riding to Baisaran Meadows","Traditional Wazwan dinner arranged"],revs:[{name:"Farah S.",img:"https://i.pravatar.cc/40?img=34",date:"Jan 2026",stars:5,text:"Woke up to 10cm fresh snow. Tariq had breakfast ready and fireplace burning. Paradise."},{name:"David L.",img:"https://i.pravatar.cc/40?img=67",date:"Dec 2025",stars:5,text:"Kashmir is extraordinary and this cabin is the best way to experience it."}]},
+  {id:12,name:"Budget Room",loc:"Chennai",state:"Tamil Nadu",lat:13.082,lng:80.270,price:40,guests:2,rating:4.4,reviews:522,badge:"Best Value",cat:"city",img:"https://images.unsplash.com/photo-1554995207-c18c203602cb?w=500&auto=format&fit=crop",gallery:["https://images.unsplash.com/photo-1554995207-c18c203602cb?w=800","https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=500","https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500"],host:{name:"Kavitha Rajan",img:"https://i.pravatar.cc/80?img=49",since:"2021",sup:false},desc:"Clean, cheerful room in Kavitha's Mylapore home. Chettinad-style tiled floors, fresh jasmine and a complimentary South Indian breakfast of idli, sambar and filter coffee.",amenities:["🛜 WiFi","❄️ AC","🍳 Shared kitchen","🚌 Bus nearby","☕ Free breakfast","📺 TV","🔒 Secure locker","🧴 Toiletries"],highlights:["Complimentary South Indian breakfast","Walk to Kapaleeshwarar Temple","Mylapore market & cafés","Warm family atmosphere"],revs:[{name:"Sarah W.",img:"https://i.pravatar.cc/40?img=15",date:"Feb 2026",stars:5,text:"Warmest host in India. Kavitha's filter coffee alone is worth the stay."},{name:"Rishi A.",img:"https://i.pravatar.cc/40?img=56",date:"Jan 2026",stars:4,text:"Great value. Clean room, great location, best idli I've ever had."}]},
+  {id:13,name:"Luxury Resort",loc:"North Goa",state:"Goa",lat:15.579,lng:73.738,price:250,guests:5,rating:4.9,reviews:198,badge:"Premium",cat:"beach",img:"https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=500&auto=format&fit=crop",gallery:["https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=800","https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=500","https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=500"],host:{name:"Maria D'Souza",img:"https://i.pravatar.cc/80?img=31",since:"2015",sup:true},desc:"Architecturally breathtaking cliff-top resort above Anjuna where the infinity pool merges into the Arabian Sea. Five bedrooms, pool bar, beach access and in-house spa.",amenities:["🏊 Infinity pool","🍸 Pool bar","🛜 WiFi","❄️ AC","🍳 Full kitchen","🏖 Beach access","💆 Spa","🎾 Tennis court"],highlights:["Cliff-top infinity pool over the sea","Private beach 3 min walk","In-house spa & wellness","Full resort staff"],revs:[{name:"Lara C.",img:"https://i.pravatar.cc/40?img=42",date:"March 2026",stars:5,text:"The infinity pool at sunset is the most beautiful thing I've ever seen."},{name:"Suresh M.",img:"https://i.pravatar.cc/40?img=65",date:"Jan 2026",stars:5,text:"Perfection in every detail. The spa treatments were world-class."}]},
+  {id:14,name:"Studio Flat",loc:"Pune",state:"Maharashtra",lat:18.520,lng:73.856,price:75,guests:2,rating:4.5,reviews:167,badge:"Popular",cat:"city",img:"https://images.unsplash.com/photo-1505691723518-36a5ac3be353?w=500&auto=format&fit=crop",gallery:["https://images.unsplash.com/photo-1505691723518-36a5ac3be353?w=800","https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=500","https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?w=500"],host:{name:"Sneha Joshi",img:"https://i.pravatar.cc/80?img=37",since:"2020",sup:false},desc:"Stylish studio in Koregaon Park, Pune's coolest neighbourhood. Surrounded by cafés, restaurants and nightlife — perfect for weekend getaways and business trips alike.",amenities:["🛜 WiFi","❄️ AC","🍳 Kitchenette","📺 Smart TV","🔒 Smart lock","🌿 Balcony","🧴 Toiletries","🚇 Auto nearby"],highlights:["Heart of Koregaon Park","Walking to Osho Ashram","Great café scene","Late checkout available"],revs:[{name:"Pooja M.",img:"https://i.pravatar.cc/40?img=43",date:"March 2026",stars:5,text:"Perfect Pune base. The neighbourhood is incredible and Sneha was wonderfully helpful."},{name:"Aman T.",img:"https://i.pravatar.cc/40?img=53",date:"Feb 2026",stars:4,text:"Clean, well-located, great value. Would book again easily."}]},
+  {id:15,name:"Cozy Room",loc:"Hyderabad",state:"Telangana",lat:17.385,lng:78.486,price:55,guests:2,rating:4.5,reviews:289,badge:"Loved by Guests",cat:"city",img:"https://images.unsplash.com/photo-1505693314120-0d443867891c?w=500&auto=format&fit=crop",gallery:["https://images.unsplash.com/photo-1505693314120-0d443867891c?w=800","https://images.unsplash.com/photo-1554995207-c18c203602cb?w=500","https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=500"],host:{name:"Roja Reddy",img:"https://i.pravatar.cc/80?img=53",since:"2019",sup:false},desc:"Warm, cozy private room in the heart of Banjara Hills. Close to Hussain Sagar Lake, the iconic Charminar and the best biryani joints in the city.",amenities:["🛜 WiFi","❄️ AC","🍳 Shared kitchen","🍛 Biryani nearby","🏛 Heritage sites","🔒 Secure","📺 TV","🚌 Bus nearby"],highlights:["Near Hussain Sagar Lake","10 min to Charminar","Best biryani street nearby","Warm, welcoming hosts"],revs:[{name:"Mihir P.",img:"https://i.pravatar.cc/40?img=46",date:"March 2026",stars:5,text:"Roja was a fantastic host. The location is perfect for exploring Hyderabad!"},{name:"Elena V.",img:"https://i.pravatar.cc/40?img=28",date:"Jan 2026",stars:4,text:"Cozy, clean, great city access. Perfect budget stay in Hyderabad."}]}
+];
+
+let mapObj=null,selLat=null,selLng=null,liked=new Set(),mode='text';
+function stars(n){return Array.from({length:5},(_,i)=>`<span style="color:${i<Math.round(n)?'#ffb400':'#ddd'};font-size:12px">★</span>`).join('');}
+function renderCards(data){
+  const g=document.getElementById('grid');
+  document.getElementById('count').textContent=data.length+' stay'+(data.length!==1?'s':'');
+  if(!data.length){g.innerHTML=`<div class="empty"><div class="e">🔍</div><h3>No stays found</h3><p>Try adjusting your filters</p></div>`;return;}
+  g.innerHTML=data.map(h=>`
+    <div class="card" onclick="openModal(${h.id})">
+      <div class="ciw">
+        <img src="${h.img}" alt="${h.name}" loading="lazy">
+        <div class="badge">${h.badge}</div>
+        <button class="wb" onclick="event.stopPropagation();toggleLike(this,${h.id})">${liked.has(h.id)?'❤️':'🤍'}</button>
+      </div>
+      <div class="cb">
+        <div class="ct"><div class="cn">${h.name}</div><div class="cr">★ ${h.rating}</div></div>
+        <div class="cl">${h.loc}, ${h.state}</div>
+        <div class="ci">Up to ${h.guests} guests · ${h.reviews} reviews</div>
+        <div class="cf">
+          <div class="cp"><strong>$${h.price}</strong><span>/night</span></div>
+          <div class="ctag">${h.cat}</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function toggleLike(btn,id){liked.has(id)?(liked.delete(id),btn.textContent='🤍',showToast('Removed from wishlist')):(liked.add(id),btn.textContent='❤️',showToast('Saved to wishlist ❤️'));}
+function openModal(id){
+  const h=H.find(x=>x.id===id);if(!h)return;
+  document.getElementById('mg').innerHTML=`<div class="mg-m"><img src="${h.gallery[0]}" loading="lazy"></div><div class="mg-s"><img src="${h.gallery[1]||h.gallery[0]}" loading="lazy"></div><div class="mg-s"><img src="${h.gallery[2]||h.gallery[0]}" loading="lazy"></div>`;
+  document.getElementById('mEy').textContent=`${h.loc} · ${h.state}`;
+  document.getElementById('mTi').textContent=h.name;
+  document.getElementById('mMe').innerHTML=`<span>${stars(h.rating)} <b>${h.rating}</b> (${h.reviews} reviews)</span><span>👥 Up to ${h.guests} guests</span><span>🏷 ${h.badge}</span>`;
+  document.getElementById('mL').innerHTML=`
+    <div class="hrow"><img src="${h.host.img}" alt="${h.host.name}"><div><div class="hn">Hosted by ${h.host.name}</div><div class="hm">Host since ${h.host.since}</div>${h.host.sup?'<div class="sh2">⭐ Superhost</div>':''}</div></div>
+    <div class="div"></div>
+    <div class="mdesc">
+      <p>${h.desc}</p>
+      <h3>✦ What this place offers</h3>
+      <div class="amen">${h.amenities.map(a=>`<div class="am">${a}</div>`).join('')}</div>
+      <h3>✦ Highlights</h3>
+      <ul style="padding-left:20px;margin-top:8px">${h.highlights.map(x=>`<li style="font-size:14px;color:#555;margin-bottom:8px">${x}</li>`).join('')}</ul>
+      <h3>✦ Guest Reviews</h3>
+      <div class="rl">${h.revs.map(r=>`<div class="rc"><div class="rt"><img src="${r.img}"><div><div class="rn">${r.name}</div><div class="rd">${r.date}</div></div></div><div style="margin-bottom:6px">${stars(r.stars)}</div><div class="rtxt">${r.text}</div></div>`).join('')}</div>
+    </div>`;
+  const nights=3,fee=Math.round(h.price*.12),total=h.price*nights+fee;
+  document.getElementById('mR').innerHTML=`
+    <div class="bk">
+      <div class="bp">$${h.price}<span> / night</span></div>
+      <div class="bsub">${stars(h.rating)} ${h.rating} · ${h.reviews} reviews</div>
+      <div class="bdates"><div class="bdf"><label>Check-in</label><input type="date"></div><div class="bdf"><label>Check-out</label><input type="date"></div></div>
+      <div class="bg"><label>Guests</label><input type="number" min="1" max="${h.guests}" value="1"></div>
+      <button class="bbtn" onclick="showToast('🎉 Booking request sent!')">Reserve Now</button>
+      <div class="bnote">You won't be charged yet</div>
+      <div class="div"></div>
+      <div class="br"><span>$${h.price} × ${nights} nights</span><span>$${h.price*nights}</span></div>
+      <div class="br"><span>Service fee</span><span>$${fee}</span></div>
+      <div class="br total"><span>Total</span><span>$${total}</span></div>
+    </div>`;
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal(){document.getElementById('overlay').classList.remove('open');document.body.style.overflow='';}
+function bgClose(e){if(e.target===document.getElementById('overlay'))closeModal();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+function doSearch(){
+  const loc=document.getElementById('location').value.toLowerCase().trim();
+  const g=parseInt(document.getElementById('guests').value);
+  const pr=document.getElementById('priceRange').value;
+  let mn=0,mx=Infinity;
+  if(pr){const[a,b]=pr.split('-');mn=+a;mx=+b;}
+  renderCards(H.filter(h=>{
+    const mL=!loc||h.loc.toLowerCase().includes(loc)||h.state.toLowerCase().includes(loc);
+    const mG=isNaN(g)||h.guests>=g;
+    const mP=h.price>=mn&&h.price<=mx;
+    if(mode==='map'&&selLat!==null)return Math.sqrt((h.lat-selLat)**2+(h.lng-selLng)**2)<5&&mG&&mP;
+    return mL&&mG&&mP;
+  }));
+}
+function setMode(m,btn){
+  mode=m;
+  document.querySelectorAll('.mb').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const el=document.getElementById('map');
+  if(m==='map'){
+    el.style.display='block';
+    if(!mapObj){
+      mapObj=L.map('map').setView([20.59,78.96],5);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapObj);
+      H.forEach(h=>{L.marker([h.lat,h.lng]).addTo(mapObj).bindPopup(`<b>${h.name}</b><br>${h.loc} — $${h.price}/night`).on('click',()=>openModal(h.id));});
+      mapObj.on('click',e=>{selLat=e.latlng.lat;selLng=e.latlng.lng;showToast('📍 Location selected — hit Search!');});
+    }
+  } else {el.style.display='none';selLat=null;selLng=null;}
+}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+renderCards(H);
+</script>
 </body>
 </html>
+
+
+
